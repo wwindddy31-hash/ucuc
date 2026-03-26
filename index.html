@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>+repProxy</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #e63939;
+    --red-dark: #b01c1c;
+    --red-glow: #ff4444;
+    --crimson: #8b0000;
+    --black: #050505;
+    --black2: #0d0d0d;
+    --black3: #111111;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: rgba(230, 57, 57, 0.2);
+    --border-bright: rgba(230, 57, 57, 0.5);
+    --text: #f0f0f0;
+    --text-dim: #999;
+    --text-muted: #555;
+    --green: #22c55e;
+    --font-display: 'Exo 2', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ── ANIMATED BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(180,0,0,0.35) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(100,0,0,0.3) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 10% 80%, rgba(140,0,0,0.2) 0%, transparent 60%);
+    animation: bgPulse 8s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(230,57,57,0.015) 40px, rgba(230,57,57,0.015) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(230,57,57,0.015) 40px, rgba(230,57,57,0.015) 41px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes bgPulse {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0.7; transform: scale(1.05); }
+  }
+
+  /* ── PAGES ── */
+  #app { position: relative; z-index: 1; min-height: 100vh; }
+
+  .page { display: none; min-height: 100vh; flex-direction: column; }
+  .page.active { display: flex; animation: pageIn 0.3s ease; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ── LOGO ── */
+  .logo {
+    text-align: center;
+    padding: 32px 20px 0;
+  }
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ff6b6b 0%, #e63939 40%, #ff2222 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+    text-shadow: none;
+    filter: drop-shadow(0 0 20px rgba(230,57,57,0.5));
+  }
+  .logo-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: rgba(22, 22, 22, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    padding: 20px;
+    margin: 0 16px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(230,57,57,0.6), transparent);
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--red);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.15s;
+  }
+  .btn:active::after { background: rgba(255,255,255,0.08); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #c82020 0%, #e63939 50%, #c82020 100%);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(230,57,57,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(230,57,57,0.3); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--red-glow);
+  }
+  .btn-outline:active { background: rgba(230,57,57,0.08); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .btn-ghost:active { background: rgba(255,255,255,0.08); }
+
+  .btn-green {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+  }
+
+  .btn-sm {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .btn + .btn { margin-top: 8px; }
+
+  /* ── INPUT ── */
+  .input-group { margin-bottom: 14px; }
+  .input-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(230,57,57,0.15);
+  }
+  .input::placeholder { color: var(--text-muted); }
+  .input-error { border-color: var(--red) !important; }
+  .error-msg {
+    font-size: 11px;
+    color: var(--red-glow);
+    margin-top: 5px;
+    font-family: var(--font-mono);
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* ── STATUS BADGE ── */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .status-active {
+    background: rgba(34,197,94,0.12);
+    color: var(--green);
+    border: 1px solid rgba(34,197,94,0.25);
+  }
+  .status-inactive {
+    background: rgba(230,57,57,0.12);
+    color: var(--red-glow);
+    border: 1px solid rgba(230,57,57,0.25);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── NAV BAR ── */
+  .navbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(12,12,12,0.97);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 32px; height: 2px;
+    background: var(--red);
+    border-radius: 0 0 2px 2px;
+  }
+  .nav-icon { font-size: 20px; line-height: 1; margin-bottom: 3px; transition: transform 0.2s; }
+  .nav-item.active .nav-icon { transform: scale(1.1); }
+  .nav-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    transition: color 0.2s;
+  }
+  .nav-item.active .nav-label { color: var(--red-glow); }
+
+  /* ── SCROLLABLE CONTENT ── */
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+    padding-top: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-content::-webkit-scrollbar { display: none; }
+
+  /* ── PROXY DISPLAY ── */
+  .proxy-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .proxy-field-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .proxy-field-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+    text-align: center;
+    word-break: break-all;
+  }
+  .copy-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    transition: color 0.2s;
+  }
+  .copy-btn:active { color: var(--red-glow); }
+
+  /* ── TARIFF CARDS ── */
+  .tariff-card {
+    background: rgba(22,22,22,0.8);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tariff-card:active, .tariff-card.selected {
+    border-color: var(--red);
+    background: rgba(230,57,57,0.08);
+    box-shadow: 0 0 20px rgba(230,57,57,0.15);
+  }
+  .tariff-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .tariff-card.selected::before { opacity: 1; }
+  .tariff-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tariff-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .tariff-price {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    color: var(--red-glow);
+    font-weight: 700;
+  }
+  .tariff-per-day {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 3px;
+  }
+  .tariff-best {
+    font-size: 10px;
+    background: linear-gradient(135deg, #e63939, #ff6b6b);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* ── PAYMENT METHOD ── */
+  .method-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(22,22,22,0.8);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .method-card:active, .method-card.selected {
+    border-color: var(--red);
+    background: rgba(230,57,57,0.08);
+  }
+  .method-icon { font-size: 24px; }
+  .method-name { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+  .method-desc { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  /* ── STAT ROW ── */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 13px; color: var(--text-dim); font-family: var(--font-ui); }
+  .stat-value { font-family: var(--font-mono); font-size: 13px; color: var(--text); font-weight: 500; }
+
+  /* ── HISTORY ITEM ── */
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .history-status { font-size: 16px; }
+  .history-info { flex: 1; padding: 0 10px; }
+  .history-amount { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+  .history-detail { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+  .history-date { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+
+  /* ── LOADER ── */
+  .loader {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid rgba(230,57,57,0.3);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    background: rgba(30,30,30,0.97);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    backdrop-filter: blur(20px);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    backdrop-filter: blur(8px);
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-sheet {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  /* ── TIMER / COUNTDOWN ── */
+  .payment-timer {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--red-glow);
+    letter-spacing: 2px;
+    margin: 12px 0;
+    text-shadow: 0 0 20px rgba(230,57,57,0.5);
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin: 14px 0;
+  }
+
+  /* ── REFERRAL LINK ── */
+  .ref-link-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    word-break: break-all;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* ── GLOW EFFECT ON ACTIVE STATUS ── */
+  .active-glow {
+    box-shadow: 0 0 30px rgba(34,197,94,0.1), inset 0 0 30px rgba(34,197,94,0.03);
+    border-color: rgba(34,197,94,0.2) !important;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red-dark), var(--red-glow));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── AUTH PAGES ── */
+  .auth-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 20px;
+  }
+  .auth-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .auth-sub {
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 28px;
+  }
+  .auth-switch {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 16px;
+  }
+  .auth-switch span {
+    color: var(--red-glow);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .password-toggle {
+    position: relative;
+  }
+  .password-toggle .toggle-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 16px 12px;
+  }
+  .section-header-text {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    flex: 1;
+  }
+  .section-header-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── SUPPORT LINK ── */
+  .support-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: rgba(22,22,22,0.8);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 16px;
+    transition: all 0.2s;
+  }
+  .support-link:active { background: rgba(230,57,57,0.08); border-color: var(--border-bright); }
+
+  /* ── SHAKE ANIMATION ── */
+  @keyframes shake {
+    0%, 100% { transform: none; }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .shake { animation: shake 0.4s; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state-text { font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════
+     AUTH PAGES
+═══════════════════════════════════════════════ -->
+
+<div id="page-register" class="page active">
+  <div class="auth-page">
+    <div class="logo" style="margin-bottom: 32px; padding-top: 0;">
+      <div class="logo-text">+repProxy</div>
+      <div class="logo-sub">SOCKS5 · TELEGRAM · PROXY</div>
+    </div>
+    <div class="auth-title">Регистрация</div>
+    <div class="auth-sub">СОЗДАЙТЕ АККАУНТ</div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input id="reg-email" class="input" type="email" placeholder="your@email.com" autocomplete="off">
+      <div id="reg-email-err" class="error-msg">Введите корректный email</div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Пароль</label>
+      <div class="password-toggle">
+        <input id="reg-pass" class="input" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+        <span class="toggle-eye" onclick="togglePass('reg-pass')">👁</span>
+      </div>
+      <div id="reg-pass-err" class="error-msg">Минимум 6 символов</div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Повторите пароль</label>
+      <div class="password-toggle">
+        <input id="reg-pass2" class="input" type="password" placeholder="Повторите пароль" autocomplete="new-password">
+        <span class="toggle-eye" onclick="togglePass('reg-pass2')">👁</span>
+      </div>
+      <div id="reg-pass2-err" class="error-msg">Пароли не совпадают</div>
+    </div>
+    <button class="btn btn-primary" id="reg-btn" onclick="doRegister()">
+      <span id="reg-btn-text">Создать аккаунт</span>
+    </button>
+    <div class="auth-switch">Уже есть аккаунт? <span onclick="showPage('page-login')">Войти</span></div>
+    <div class="auth-switch" style="margin-top:8px"><span onclick="showPage('page-forgot')">Забыли пароль?</span></div>
+  </div>
+</div>
+
+<div id="page-login" class="page">
+  <div class="auth-page">
+    <div class="logo" style="margin-bottom: 32px; padding-top: 0;">
+      <div class="logo-text">+repProxy</div>
+      <div class="logo-sub">SOCKS5 · TELEGRAM · PROXY</div>
+    </div>
+    <div class="auth-title">Вход</div>
+    <div class="auth-sub">С ВОЗВРАЩЕНИЕМ</div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input id="login-email" class="input" type="email" placeholder="your@email.com" autocomplete="off">
+      <div id="login-email-err" class="error-msg">Неверный email или пароль</div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Пароль</label>
+      <div class="password-toggle">
+        <input id="login-pass" class="input" type="password" placeholder="Ваш пароль" autocomplete="current-password">
+        <span class="toggle-eye" onclick="togglePass('login-pass')">👁</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
+      <span id="login-btn-text">Войти</span>
+    </button>
+    <div class="auth-switch">Нет аккаунта? <span onclick="showPage('page-register')">Зарегистрироваться</span></div>
+    <div class="auth-switch" style="margin-top:8px"><span onclick="showPage('page-forgot')">Забыли пароль?</span></div>
+  </div>
+</div>
+
+<div id="page-forgot" class="page">
+  <div class="auth-page">
+    <div class="logo" style="margin-bottom: 32px; padding-top: 0;">
+      <div class="logo-text">+repProxy</div>
+      <div class="logo-sub">ВОССТАНОВЛЕНИЕ ПАРОЛЯ</div>
+    </div>
+    <div class="auth-title">Сброс пароля</div>
+    <div class="auth-sub">ВВЕДИТЕ EMAIL ДЛЯ ВОССТАНОВЛЕНИЯ</div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input id="forgot-email" class="input" type="email" placeholder="your@email.com">
+      <div id="forgot-email-err" class="error-msg">Введите корректный email</div>
+    </div>
+    <button class="btn btn-primary" id="forgot-btn" onclick="doForgot()">
+      <span id="forgot-btn-text">Отправить письмо</span>
+    </button>
+    <div class="auth-switch"><span onclick="showPage('page-login')">← Назад к входу</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN APP (after auth)
+═══════════════════════════════════════════════ -->
+
+<div id="page-app" class="page">
+  <div id="app">
+
+    <!-- ── HOME ── -->
+    <div id="tab-home" class="tab-content">
+      <div class="scroll-content">
+        <div class="logo">
+          <div class="logo-text">+repProxy</div>
+          <div class="logo-sub">ЛИЧНЫЙ SOCKS5 ПРОКСИ</div>
+        </div>
+
+        <!-- Status card -->
+        <div id="status-card" class="card" style="margin-top: 16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <span class="card-title" style="margin-bottom:0;">Статус</span>
+            <span id="status-badge" class="status-badge status-inactive">
+              <span class="status-dot"></span>
+              <span>Не активна</span>
+            </span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">⏳ Осталось дней</span>
+            <span id="days-left" class="stat-value">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">📅 Активна до</span>
+            <span id="paid-until" class="stat-value">—</span>
+          </div>
+          <div id="sub-progress" style="display:none;">
+            <div class="progress-bar">
+              <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px; margin-bottom:12px;">
+          <button class="btn btn-primary" onclick="switchTab('proxy')">⚡ Мой прокси</button>
+          <button class="btn btn-outline" onclick="switchTab('buy')">💳 Купить</button>
+        </div>
+
+        <!-- Features -->
+        <div class="card">
+          <div class="card-title">Возможности</div>
+          <div class="stat-row">
+            <span class="stat-label">🔒 Личный канал</span>
+            <span class="stat-value" style="color: var(--green)">Только ты</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">📷 Фото / Видео</span>
+            <span class="stat-value" style="color: var(--green)">Работает</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">🎙 Голосовые</span>
+            <span class="stat-value" style="color: var(--green)">Работает</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">⚙️ Без доп. приложений</span>
+            <span class="stat-value" style="color: var(--green)">✓</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">💰 Цена от</span>
+            <span class="stat-value">3 ₽/день</span>
+          </div>
+        </div>
+
+        <!-- Referral mini-block -->
+        <div class="card">
+          <div class="card-title">Рефералы</div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:24px; font-family:var(--font-mono); font-weight:700;" id="home-ref-count">0</div>
+              <div style="font-size:12px; color:var(--text-muted);">приглашено</div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="width:auto; padding:10px 16px;" onclick="switchTab('refs')">Подробнее →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROXY ── -->
+    <div id="tab-proxy" class="tab-content" style="display:none;">
+      <div class="scroll-content">
+        <div class="section-header">
+          <div>
+            <div class="section-header-text">⚡ Мой прокси</div>
+            <div class="section-header-sub">ДАННЫЕ ПОДКЛЮЧЕНИЯ</div>
+          </div>
+        </div>
+
+        <div id="proxy-inactive-block" class="card" style="text-align:center;">
+          <div style="font-size:40px; margin-bottom:12px;">🔴</div>
+          <div style="font-family:var(--font-display); font-size:18px; font-weight:700; margin-bottom:8px;">Подписка не активна</div>
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Купите подписку, чтобы получить доступ к прокси</div>
+          <button class="btn btn-primary" onclick="switchTab('buy')">💳 Купить подписку</button>
+        </div>
+
+        <div id="proxy-active-block" style="display:none;">
+          <div class="card active-glow">
+            <div class="card-title">Данные прокси</div>
+            <div class="proxy-field">
+              <span class="proxy-field-label">Сервер</span>
+              <span class="proxy-field-value" id="proxy-ip">2.27.21.112</span>
+              <button class="copy-btn" onclick="copyField('proxy-ip')">📋</button>
+            </div>
+            <div class="proxy-field">
+              <span class="proxy-field-label">Порт</span>
+              <span class="proxy-field-value" id="proxy-port">1080</span>
+              <button class="copy-btn" onclick="copyField('proxy-port')">📋</button>
+            </div>
+            <div class="proxy-field">
+              <span class="proxy-field-label">Логин</span>
+              <span class="proxy-field-value" id="proxy-user">—</span>
+              <button class="copy-btn" onclick="copyField('proxy-user')">📋</button>
+            </div>
+            <div class="proxy-field">
+              <span class="proxy-field-label">Пароль</span>
+              <span class="proxy-field-value" id="proxy-pass">—</span>
+              <button class="copy-btn" onclick="copyField('proxy-pass')">📋</button>
+            </div>
+            <hr class="divider">
+            <button class="btn btn-primary" id="connect-proxy-btn" onclick="connectProxy()">⚡ Подключить одним нажатием</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Инструкция</div>
+            <div class="stat-row">
+              <span class="stat-label">1. Нажмите «Подключить»</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">2. Telegram откроется автоматически</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">3. Подтвердите добавление прокси</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">4. Готово! Прокси подключён</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BUY ── -->
+    <div id="tab-buy" class="tab-content" style="display:none;">
+      <div class="scroll-content">
+        <div id="buy-step-tariff">
+          <div class="section-header">
+            <div>
+              <div class="section-header-text">💳 Купить</div>
+              <div class="section-header-sub">ВЫБЕРИТЕ ТАРИФ</div>
+            </div>
+          </div>
+
+          <div style="padding: 0 16px;">
+            <div class="tariff-card" id="tariff-0" onclick="selectTariff(0)">
+              <div class="tariff-row">
+                <div>
+                  <div class="tariff-name">7 дней</div>
+                  <div class="tariff-per-day">≈ 4.3 ₽/день</div>
+                </div>
+                <div class="tariff-price">30 ₽</div>
+              </div>
+            </div>
+
+            <div class="tariff-card" id="tariff-1" onclick="selectTariff(1)">
+              <div class="tariff-row">
+                <div>
+                  <div class="tariff-name">Месяц</div>
+                  <div class="tariff-per-day">≈ 3 ₽/день</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="tariff-price">90 ₽</div>
+                  <div class="tariff-best">ВЫГОДНО</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tariff-card" id="tariff-2" onclick="selectTariff(2)">
+              <div class="tariff-row">
+                <div>
+                  <div class="tariff-name">3 месяца</div>
+                  <div class="tariff-per-day">≈ 2.7 ₽/день</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="tariff-price">240 ₽</div>
+                  <div class="tariff-best">ЛУЧШАЯ ЦЕНА</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Method -->
+        <div id="buy-step-method" style="display:none;">
+          <div class="section-header">
+            <div>
+              <div class="section-header-text">💳 Оплата</div>
+              <div class="section-header-sub" id="method-sub">ТАРИФ: —</div>
+            </div>
+          </div>
+          <div style="padding: 0 16px;">
+            <div class="method-card" onclick="selectMethod(11)">
+              <span class="method-icon">💳</span>
+              <div>
+                <div class="method-name">Банковская карта</div>
+                <div class="method-desc">Visa, Mastercard, МИР</div>
+              </div>
+            </div>
+            <div class="method-card" onclick="selectMethod(2)">
+              <span class="method-icon">🏦</span>
+              <div>
+                <div class="method-name">СБП</div>
+                <div class="method-desc">Система быстрых платежей</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost" onclick="document.getElementById('buy-step-method').style.display='none'; document.getElementById('buy-step-tariff').style.display='block';" style="margin-top:8px;">
+              ← Назад
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Waiting payment -->
+        <div id="buy-step-waiting" style="display:none;">
+          <div class="section-header">
+            <div>
+              <div class="section-header-text">⏳ Ожидание</div>
+              <div class="section-header-sub">ОЖИДАНИЕ ОПЛАТЫ</div>
+            </div>
+          </div>
+          <div style="padding: 0 16px;">
+            <div class="card" style="text-align:center;">
+              <div class="card-title">Информация</div>
+              <div id="waiting-tariff" style="font-family:var(--font-display); font-size:18px; font-weight:700; margin-bottom:4px;"></div>
+              <div id="waiting-amount" style="font-family:var(--font-mono); font-size:28px; color:var(--red-glow); font-weight:700; margin-bottom:4px;"></div>
+              <div id="waiting-method" style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:16px;"></div>
+              <div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">Время до истечения:</div>
+              <div class="payment-timer" id="payment-timer">15:00</div>
+              <hr class="divider">
+              <button class="btn btn-primary" id="goto-pay-btn" onclick="openPayUrl()">👉 Перейти к оплате</button>
+              <button class="btn btn-green" style="margin-top:8px;" onclick="checkPayment()">
+                <span id="check-btn-text">✅ Я оплатил</span>
+              </button>
+              <button class="btn btn-ghost" style="margin-top:8px;" onclick="cancelPayment()">Отмена</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCOUNT ── -->
+    <div id="tab-account" class="tab-content" style="display:none;">
+      <div class="scroll-content">
+        <div class="section-header">
+          <div>
+            <div class="section-header-text">📊 Аккаунт</div>
+            <div class="section-header-sub">ИНФОРМАЦИЯ</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Профиль</div>
+          <div class="stat-row">
+            <span class="stat-label">Telegram ID</span>
+            <span class="stat-value" id="acc-tgid" style="font-family:var(--font-mono);">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Email</span>
+            <span class="stat-value" id="acc-email" style="font-family:var(--font-mono); font-size:11px;">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Статус</span>
+            <span id="acc-status" class="status-badge status-inactive" style="font-size:11px;">
+              <span class="status-dot"></span> Не активна
+            </span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Осталось</span>
+            <span id="acc-days" class="stat-value">0 дн.</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Активна до</span>
+            <span id="acc-until" class="stat-value">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Рефералов</span>
+            <span id="acc-refs" class="stat-value">0</span>
+          </div>
+        </div>
+
+        <div style="padding: 0 16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <button class="btn btn-primary btn-sm" onclick="switchTab('buy')">💳 Купить</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('proxy')">⚡ Прокси</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">История платежей</div>
+          <div id="acc-history-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <div class="empty-state-text">Платежей пока нет</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 0 16px; margin-bottom: 12px;">
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="color:var(--red-glow);">🚪 Выйти</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REFERRALS ── -->
+    <div id="tab-refs" class="tab-content" style="display:none;">
+      <div class="scroll-content">
+        <div class="section-header">
+          <div>
+            <div class="section-header-text">👥 Рефералы</div>
+            <div class="section-header-sub">ПРИГЛАСИ И ПОЛУЧИ БОНУС</div>
+          </div>
+        </div>
+
+        <div class="card" style="text-align:center;">
+          <div style="font-size:48px; margin-bottom:8px;">🎁</div>
+          <div style="font-family:var(--font-display); font-size:28px; font-weight:800;" id="ref-count-big">0</div>
+          <div style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">человек приглашено</div>
+          <div class="card-title">Ваша ссылка</div>
+          <div class="ref-link-box" id="ref-link-box">Загрузка...</div>
+          <button class="btn btn-primary" style="margin-top:12px;" onclick="shareRef()">🔗 Поделиться</button>
+          <button class="btn btn-ghost" style="margin-top:8px;" onclick="copyRefLink()">📋 Копировать ссылку</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Как работает</div>
+          <div class="stat-row">
+            <span class="stat-label">1. Поделитесь ссылкой</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">2. Друг переходит и регистрируется</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">3. Вы получаете бонусные дни</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Главная</div>
+    </div>
+    <div class="nav-item" id="nav-proxy" onclick="switchTab('proxy')">
+      <div class="nav-icon">⚡</div>
+      <div class="nav-label">Прокси</div>
+    </div>
+    <div class="nav-item" id="nav-buy" onclick="switchTab('buy')">
+      <div class="nav-icon">💳</div>
+      <div class="nav-label">Купить</div>
+    </div>
+    <div class="nav-item" id="nav-refs" onclick="switchTab('refs')">
+      <div class="nav-icon">👥</div>
+      <div class="nav-label">Рефералы</div>
+    </div>
+    <div class="nav-item" id="nav-account" onclick="switchTab('account')">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Аккаунт</div>
+    </div>
+  </nav>
+</div><!-- page-app -->
+
+<!-- SUPPORT MODAL -->
+<div class="modal-overlay" id="modal-support">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🆘 Поддержка</div>
+    <div style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; margin-bottom:20px;">
+      Если что-то не работает — напишите нам
+    </div>
+    <a href="https://t.me/rep_support_proxy_bot" target="_blank" class="btn btn-primary" style="text-decoration:none;">
+      👨‍💻 Написать в поддержку
+    </a>
+    <button class="btn btn-ghost" style="margin-top:8px;" onclick="closeModal('modal-support')">Закрыть</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════
+const CONFIG = {
+  PLATEGA_URL: 'https://app.platega.io',
+  MERCHANT_ID: 'cb15fbd0-abd5-4a35-b9d3-35ede41ac16b',
+  API_KEY: 'XH8G8edAR7YpGDftLePvwydSTyEzBFBCXMDtLBlDjswRdq0LWIbckAQgws864krcFBBxSqIldEWhYvvdEq7Fr7Gr6klZXAVz1EH3',
+  PROXY_IP: '2.27.21.112',
+  PROXY_PORT: 1080,
+  SUPPORT_BOT: 'https://t.me/rep_support_proxy_bot',
+  // Email settings
+  EMAILJS_SERVICE_ID: 'service_jp1z11w',
+  EMAILJS_TEMPLATE_ID: 'template_t2ar1pc',
+  EMAILJS_PUBLIC_KEY: '-kxMwsXsrgSP-cCMn',
+  FROM_EMAIL: 'kravcove893@gmail.com',
+};
+
+const TARIFFS = [
+  { label: '7 дней',   days: 7,  price: 30 },
+  { label: 'Месяц',    days: 30, price: 90 },
+  { label: '3 месяца', days: 90, price: 240 },
+];
+
+const PAID_STATUSES = new Set(['SUCCESS', 'PAID', 'COMPLETED', 'CONFIRMED']);
+
+// ─── State ───
+let state = {
+  user: null,
+  tgId: null,
+  tgUsername: null,
+  selectedTariff: null,
+  currentPayment: null,
+  payTimer: null,
+  payTimerEnd: null,
+};
+
+// ═══════════════════════════════════════════
+//  TELEGRAM SDK
+// ═══════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#050505');
+  tg.setBackgroundColor('#050505');
+  const tgUser = tg.initDataUnsafe?.user;
+  if (tgUser) {
+    state.tgId = tgUser.id;
+    state.tgUsername = tgUser.username || '';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LOCAL STORAGE DB (simple in-browser)
+// ═══════════════════════════════════════════
+const DB = {
+  getUsers() { try { return JSON.parse(localStorage.getItem('rp_users') || '{}'); } catch { return {}; } },
+  saveUsers(u) { localStorage.setItem('rp_users', JSON.stringify(u)); },
+  getUser(email) { return this.getUsers()[email.toLowerCase()] || null; },
+  saveUser(email, data) { const u = this.getUsers(); u[email.toLowerCase()] = data; this.saveUsers(u); },
+  getSession() { try { return JSON.parse(localStorage.getItem('rp_session') || 'null'); } catch { return null; } },
+  saveSession(s) { localStorage.setItem('rp_session', JSON.stringify(s)); },
+  clearSession() { localStorage.removeItem('rp_session'); },
+  getPayments(email) {
+    try { return JSON.parse(localStorage.getItem(`rp_pay_${email}`) || '[]'); } catch { return []; }
+  },
+  savePayment(email, pay) {
+    const list = this.getPayments(email);
+    list.unshift(pay);
+    localStorage.setItem(`rp_pay_${email}`, JSON.stringify(list.slice(0, 50)));
+  },
+  updatePayment(email, tid, updates) {
+    const list = this.getPayments(email);
+    const idx = list.findIndex(p => p.transaction_id === tid);
+    if (idx !== -1) { list[idx] = { ...list[idx], ...updates }; localStorage.setItem(`rp_pay_${email}`, JSON.stringify(list)); }
+  },
+};
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function togglePass(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function setLoading(btnId, textId, loading, text) {
+  const btn = document.getElementById(btnId);
+  const span = document.getElementById(textId);
+  btn.disabled = loading;
+  span.innerHTML = loading ? '<span class="loader" style="width:16px;height:16px;border-width:2px;"></span>' : text;
+}
+
+function hashPassword(pass) {
+  // Simple hash for demo — in production use bcrypt via backend
+  let hash = 0;
+  for (let i = 0; i < pass.length; i++) {
+    hash = ((hash << 5) - hash) + pass.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'h_' + Math.abs(hash).toString(36) + pass.length;
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function shake(el) {
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ═══════════════════════════════════════════
+//  EMAIL (EmailJS)
+// ═══════════════════════════════════════════
+async function sendEmail(to, subject, htmlBody) {
+  try {
+    if (typeof emailjs !== 'undefined') {
+      await emailjs.send(
+        CONFIG.EMAILJS_SERVICE_ID,
+        CONFIG.EMAILJS_TEMPLATE_ID,
+        {
+          to_email: to,
+          subject: subject,
+          html_content: htmlBody,
+          from_name: '+repProxy',
+        },
+        CONFIG.EMAILJS_PUBLIC_KEY
+      );
+      console.log('Email sent to:', to);
+    } else {
+      console.warn('EmailJS not loaded');
+    }
+  } catch (e) {
+    console.warn('Email send failed:', e);
+  }
+}
+
+function emailRegisterHTML(email) {
+  return `
+    <div style="background:#0d0d0d; color:#f0f0f0; font-family:'Arial',sans-serif; max-width:480px; margin:0 auto; border-radius:16px; overflow:hidden; border:1px solid rgba(230,57,57,0.3);">
+      <div style="background:linear-gradient(135deg,#8b0000,#e63939); padding:32px; text-align:center;">
+        <h1 style="margin:0; font-size:32px; color:#fff; letter-spacing:2px;">+repProxy</h1>
+        <p style="margin:6px 0 0; font-size:11px; color:rgba(255,255,255,0.7); letter-spacing:4px;">SOCKS5 · TELEGRAM · PROXY</p>
+      </div>
+      <div style="padding:28px 24px;">
+        <h2 style="color:#e63939; font-size:20px; margin:0 0 12px;">✅ Регистрация успешна!</h2>
+        <p style="color:#aaa; font-size:14px; line-height:1.6; margin-bottom:16px;">
+          Вы успешно зарегистрированы в системе <strong style="color:#f0f0f0;">+repProxy</strong>.
+        </p>
+        <div style="background:rgba(230,57,57,0.08); border:1px solid rgba(230,57,57,0.2); border-radius:10px; padding:16px; margin-bottom:20px;">
+          <p style="margin:0; font-size:13px; color:#ccc;"><strong>Email:</strong> ${email}</p>
+        </div>
+        <p style="color:#888; font-size:12px; line-height:1.6;">
+          Теперь вы можете войти в личный кабинет и приобрести подписку на личный SOCKS5 прокси для Telegram.
+        </p>
+      </div>
+      <div style="padding:16px 24px; border-top:1px solid rgba(255,255,255,0.06); text-align:center;">
+        <p style="margin:0; font-size:11px; color:#555;">© 2024 +repProxy · Если вы не регистрировались — проигнорируйте это письмо</p>
+      </div>
+    </div>
+  `;
+}
+
+function emailResetHTML(email, newPass) {
+  return `
+    <div style="background:#0d0d0d; color:#f0f0f0; font-family:'Arial',sans-serif; max-width:480px; margin:0 auto; border-radius:16px; overflow:hidden; border:1px solid rgba(230,57,57,0.3);">
+      <div style="background:linear-gradient(135deg,#8b0000,#e63939); padding:32px; text-align:center;">
+        <h1 style="margin:0; font-size:32px; color:#fff; letter-spacing:2px;">+repProxy</h1>
+        <p style="margin:6px 0 0; font-size:11px; color:rgba(255,255,255,0.7); letter-spacing:4px;">ВОССТАНОВЛЕНИЕ ПАРОЛЯ</p>
+      </div>
+      <div style="padding:28px 24px;">
+        <h2 style="color:#e63939; font-size:20px; margin:0 0 12px;">🔑 Новый пароль</h2>
+        <p style="color:#aaa; font-size:14px; line-height:1.6; margin-bottom:16px;">
+          Вы запросили сброс пароля. Ваш новый временный пароль:
+        </p>
+        <div style="background:rgba(230,57,57,0.08); border:1px solid rgba(230,57,57,0.2); border-radius:10px; padding:16px; margin-bottom:20px; text-align:center;">
+          <p style="margin:0; font-size:20px; color:#ff6b6b; font-family:monospace; letter-spacing:4px; font-weight:bold;">${newPass}</p>
+        </div>
+        <p style="color:#888; font-size:12px; line-height:1.6;">
+          После входа в систему рекомендуем сменить пароль на более надёжный.
+        </p>
+      </div>
+      <div style="padding:16px 24px; border-top:1px solid rgba(255,255,255,0.06); text-align:center;">
+        <p style="margin:0; font-size:11px; color:#555;">© 2024 +repProxy · Если вы не запрашивали сброс — проигнорируйте это письмо</p>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+function doRegister() {
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  let valid = true;
+
+  ['reg-email-err', 'reg-pass-err', 'reg-pass2-err'].forEach(id => {
+    document.getElementById(id).classList.remove('show');
+  });
+  ['reg-email', 'reg-pass', 'reg-pass2'].forEach(id => {
+    document.getElementById(id).classList.remove('input-error');
+  });
+
+  if (!validateEmail(email)) {
+    document.getElementById('reg-email').classList.add('input-error');
+    document.getElementById('reg-email-err').classList.add('show');
+    valid = false;
+  }
+  if (pass.length < 6) {
+    document.getElementById('reg-pass').classList.add('input-error');
+    document.getElementById('reg-pass-err').classList.add('show');
+    valid = false;
+  }
+  if (pass !== pass2) {
+    document.getElementById('reg-pass2').classList.add('input-error');
+    document.getElementById('reg-pass2-err').classList.add('show');
+    valid = false;
+  }
+  if (!valid) { shake(document.getElementById('reg-btn')); return; }
+
+  if (DB.getUser(email)) {
+    document.getElementById('reg-email').classList.add('input-error');
+    document.getElementById('reg-email-err').textContent = 'Email уже зарегистрирован';
+    document.getElementById('reg-email-err').classList.add('show');
+    shake(document.getElementById('reg-btn'));
+    return;
+  }
+
+  setLoading('reg-btn', 'reg-btn-text', true);
+  setTimeout(() => {
+    const userData = {
+      email,
+      pass_hash: hashPassword(pass),
+      tg_id: state.tgId,
+      tg_username: state.tgUsername,
+      proxy_user: null,
+      proxy_pass: null,
+      paid_until: null,
+      referral_id: null,
+      refs: 0,
+      created_at: new Date().toISOString(),
+    };
+    DB.saveUser(email, userData);
+    DB.saveSession({ email, tg_id: state.tgId });
+
+    // Send welcome email
+    sendEmail(email, '✅ Добро пожаловать в +repProxy!', emailRegisterHTML(email));
+
+    setLoading('reg-btn', 'reg-btn-text', false, 'Создать аккаунт');
+    state.user = userData;
+    showToast('✅ Аккаунт создан! Добро пожаловать!');
+    initApp();
+  }, 900);
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  let valid = true;
+
+  document.getElementById('login-email-err').classList.remove('show');
+  document.getElementById('login-email').classList.remove('input-error');
+
+  if (!validateEmail(email)) { valid = false; }
+  if (!valid || !pass) {
+    document.getElementById('login-email').classList.add('input-error');
+    document.getElementById('login-email-err').textContent = 'Заполните все поля';
+    document.getElementById('login-email-err').classList.add('show');
+    shake(document.getElementById('login-btn'));
+    return;
+  }
+
+  setLoading('login-btn', 'login-btn-text', true);
+  setTimeout(() => {
+    const user = DB.getUser(email);
+    if (!user || user.pass_hash !== hashPassword(pass)) {
+      document.getElementById('login-email').classList.add('input-error');
+      document.getElementById('login-email-err').textContent = 'Неверный email или пароль';
+      document.getElementById('login-email-err').classList.add('show');
+      setLoading('login-btn', 'login-btn-text', false, 'Войти');
+      shake(document.getElementById('login-btn'));
+      return;
+    }
+    DB.saveSession({ email, tg_id: state.tgId });
+    state.user = user;
+    setLoading('login-btn', 'login-btn-text', false, 'Войти');
+    showToast('✅ Добро пожаловать!');
+    initApp();
+  }, 700);
+}
+
+function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+  document.getElementById('forgot-email-err').classList.remove('show');
+  document.getElementById('forgot-email').classList.remove('input-error');
+
+  if (!validateEmail(email)) {
+    document.getElementById('forgot-email').classList.add('input-error');
+    document.getElementById('forgot-email-err').classList.add('show');
+    shake(document.getElementById('forgot-btn'));
+    return;
+  }
+
+  setLoading('forgot-btn', 'forgot-btn-text', true);
+  setTimeout(() => {
+    const user = DB.getUser(email);
+    if (user) {
+      const newPass = Math.random().toString(36).slice(2, 10);
+      user.pass_hash = hashPassword(newPass);
+      DB.saveUser(email, user);
+      sendEmail(email, '🔑 Сброс пароля +repProxy', emailResetHTML(email, newPass));
+    }
+    setLoading('forgot-btn', 'forgot-btn-text', false, 'Отправить письмо');
+    showToast('📧 Если email существует — письмо отправлено', 3000);
+    setTimeout(() => showPage('page-login'), 2000);
+  }, 1000);
+}
+
+function doLogout() {
+  DB.clearSession();
+  state.user = null;
+  if (state.payTimer) clearInterval(state.payTimer);
+  showPage('page-login');
+}
+
+// ═══════════════════════════════════════════
+//  APP INIT
+// ═══════════════════════════════════════════
+function initApp() {
+  showPage('page-app');
+  updateUI();
+  switchTab('home');
+}
+
+function updateUI() {
+  const u = state.user;
+  const isActive = checkActive(u);
+  const dl = daysLeft(u);
+  const email = u?.email || '—';
+  const tgId = u?.tg_id || state.tgId || '—';
+
+  // Status card
+  const badge = document.getElementById('status-badge');
+  if (isActive) {
+    badge.className = 'status-badge status-active';
+    badge.innerHTML = '<span class="status-dot"></span><span>Активна</span>';
+    document.getElementById('status-card').classList.add('active-glow');
+    document.getElementById('sub-progress').style.display = 'block';
+    // Progress
+    const totalDays = computeTotalDays(u);
+    const pct = totalDays > 0 ? Math.round((dl / totalDays) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+  } else {
+    badge.className = 'status-badge status-inactive';
+    badge.innerHTML = '<span class="status-dot"></span><span>Не активна</span>';
+    document.getElementById('status-card').classList.remove('active-glow');
+    document.getElementById('sub-progress').style.display = 'none';
+  }
+  document.getElementById('days-left').textContent = dl;
+  document.getElementById('paid-until').textContent = u?.paid_until ? u.paid_until.slice(0, 10) : '—';
+
+  // Proxy tab
+  if (isActive && u?.proxy_user) {
+    document.getElementById('proxy-inactive-block').style.display = 'none';
+    document.getElementById('proxy-active-block').style.display = 'block';
+    document.getElementById('proxy-user').textContent = u.proxy_user;
+    document.getElementById('proxy-pass').textContent = u.proxy_pass;
+  } else {
+    document.getElementById('proxy-inactive-block').style.display = 'block';
+    document.getElementById('proxy-active-block').style.display = 'none';
+  }
+
+  // Account
+  document.getElementById('acc-tgid').textContent = tgId;
+  document.getElementById('acc-email').textContent = email;
+  document.getElementById('acc-days').textContent = dl + ' дн.';
+  document.getElementById('acc-until').textContent = u?.paid_until ? u.paid_until.slice(0, 10) : '—';
+  document.getElementById('acc-refs').textContent = u?.refs || 0;
+  const accStatus = document.getElementById('acc-status');
+  if (isActive) {
+    accStatus.className = 'status-badge status-active';
+    accStatus.innerHTML = '<span class="status-dot"></span> Активна';
+  } else {
+    accStatus.className = 'status-badge status-inactive';
+    accStatus.innerHTML = '<span class="status-dot"></span> Не активна';
+  }
+
+  // Referrals
+  const refs = u?.refs || 0;
+  const refLink = `https://t.me/repProxyBot?start=ref_${u?.tg_id || 'user'}`;
+  document.getElementById('ref-count-big').textContent = refs;
+  document.getElementById('home-ref-count').textContent = refs;
+  document.getElementById('ref-link-box').textContent = refLink;
+
+  // History
+  renderHistory();
+}
+
+function renderHistory() {
+  const email = state.user?.email;
+  if (!email) return;
+  const pays = DB.getPayments(email);
+  const el = document.getElementById('acc-history-list');
+  if (!pays.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">Платежей пока нет</div></div>';
+    return;
+  }
+  el.innerHTML = pays.slice(0, 10).map(p => `
+    <div class="history-item">
+      <span class="history-status">${p.status === 'PAID' ? '✅' : '⏳'}</span>
+      <div class="history-info">
+        <div class="history-amount">${p.amount} ₽ — ${p.days} дн.</div>
+        <div class="history-detail">${p.method}</div>
+      </div>
+      <div class="history-date">${p.created_at?.slice(0, 10) || ''}</div>
+    </div>
+  `).join('');
+}
+
+function checkActive(u) {
+  if (!u?.paid_until) return false;
+  try { return new Date(u.paid_until) > new Date(); } catch { return false; }
+}
+
+function daysLeft(u) {
+  if (!u?.paid_until) return 0;
+  try { return Math.max(0, Math.floor((new Date(u.paid_until) - new Date()) / 86400000)); } catch { return 0; }
+}
+
+function computeTotalDays(u) {
+  const pays = DB.getPayments(u?.email || '').filter(p => p.status === 'PAID');
+  return pays.reduce((s, p) => s + (p.days || 0), 0) || 30;
+}
+
+// ═══════════════════════════════════════════
+//  TAB NAVIGATION
+// ═══════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + (name === 'buy' ? 'buy' : name === 'proxy' ? 'proxy' : name === 'refs' ? 'refs' : name === 'account' ? 'account' : 'home')).style.display = 'flex';
+  document.getElementById('tab-' + (name === 'buy' ? 'buy' : name === 'proxy' ? 'proxy' : name === 'refs' ? 'refs' : name === 'account' ? 'account' : 'home')).style.flexDirection = 'column';
+  const navId = { home: 'nav-home', proxy: 'nav-proxy', buy: 'nav-buy', refs: 'nav-refs', account: 'nav-account' }[name] || 'nav-home';
+  document.getElementById(navId)?.classList.add('active');
+  updateUI();
+}
+
+// ═══════════════════════════════════════════
+//  PROXY ACTIONS
+// ═══════════════════════════════════════════
+function connectProxy() {
+  const u = state.user;
+  if (!u?.proxy_user) return;
+  const link = `tg://socks?server=${CONFIG.PROXY_IP}&port=${CONFIG.PROXY_PORT}&user=${encodeURIComponent(u.proxy_user)}&pass=${encodeURIComponent(u.proxy_pass)}`;
+  if (tg) {
+    tg.openTelegramLink(link);
+  } else {
+    window.open(link, '_blank');
+  }
+}
+
+function copyField(id) {
+  const val = document.getElementById(id).textContent;
+  navigator.clipboard?.writeText(val).then(() => showToast('📋 Скопировано!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = val;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 Скопировано!');
+  });
+}
+
+// ═══════════════════════════════════════════
+//  TARIFF + PAYMENT
+// ═══════════════════════════════════════════
+function selectTariff(idx) {
+  state.selectedTariff = idx;
+  document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('tariff-' + idx).classList.add('selected');
+  setTimeout(() => {
+    const t = TARIFFS[idx];
+    document.getElementById('method-sub').textContent = `ТАРИФ: ${t.label.toUpperCase()} — ${t.price} ₽`;
+    document.getElementById('buy-step-tariff').style.display = 'none';
+    document.getElementById('buy-step-method').style.display = 'block';
+  }, 200);
+}
+
+async function selectMethod(method) {
+  const idx = state.selectedTariff;
+  const t = TARIFFS[idx];
+  const tgId = state.user?.tg_id || state.tgId || 'anon';
+
+  document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+  event?.currentTarget?.classList.add('selected');
+
+  showToast('⏳ Создаём платёж...');
+  try {
+    const result = await createPlatega(t.price, t.days, method, tgId);
+    if (!result || !result.transactionId) {
+      showToast('❌ Ошибка создания платежа. Попробуйте позже.');
+      return;
+    }
+    const tid = result.transactionId;
+    const payUrl = result.redirect || '';
+    const ml = method === 11 ? 'Банковская карта' : 'СБП';
+
+    DB.savePayment(state.user.email, {
+      transaction_id: tid, amount: t.price, days: t.days,
+      method: ml, status: 'PENDING', created_at: new Date().toISOString(),
+    });
+
+    state.currentPayment = { tid, payUrl, tariff: t, method: ml };
+
+    document.getElementById('buy-step-method').style.display = 'none';
+    document.getElementById('buy-step-waiting').style.display = 'block';
+    document.getElementById('waiting-tariff').textContent = t.label;
+    document.getElementById('waiting-amount').textContent = t.price + ' ₽';
+    document.getElementById('waiting-method').textContent = ml;
+
+    startPayTimer(15 * 60);
+  } catch (e) {
+    showToast('❌ Ошибка: ' + e.message);
+  }
+}
+
+function openPayUrl() {
+  const url = state.currentPayment?.payUrl;
+  if (!url) { showToast('❌ Ссылка на оплату не найдена'); return; }
+  if (tg) { tg.openLink(url); } else { window.open(url, '_blank'); }
+}
+
+async function checkPayment() {
+  const p = state.currentPayment;
+  if (!p) return;
+  document.getElementById('check-btn-text').innerHTML = '<span class="loader" style="width:14px;height:14px;border-width:2px;display:inline-block;"></span> Проверяем...';
+
+  try {
+    const status = await checkPlatega(p.tid);
+    const ps = (status?.status || status?.state || '').toUpperCase();
+    if (PAID_STATUSES.has(ps)) {
+      await activateSubscription(p.tid, p.tariff);
+    } else {
+      document.getElementById('check-btn-text').textContent = '✅ Я оплатил';
+      showToast('⏳ Оплата ещё не поступила. Подождите немного.');
+    }
+  } catch (e) {
+    document.getElementById('check-btn-text').textContent = '✅ Я оплатил';
+    showToast('❌ Ошибка проверки. Попробуйте ещё раз.');
+  }
+}
+
+async function activateSubscription(tid, tariff) {
+  // Update payment status
+  DB.updatePayment(state.user.email, tid, { status: 'PAID' });
+
+  // Add days
+  const u = DB.getUser(state.user.email);
+  const now = new Date();
+  let base = now;
+  if (u.paid_until) {
+    const cur = new Date(u.paid_until);
+    if (cur > now) base = cur;
+  }
+  const newUntil = new Date(base.getTime() + tariff.days * 86400000).toISOString();
+  u.paid_until = newUntil;
+
+  // Generate proxy credentials if not exists
+  if (!u.proxy_user) {
+    u.proxy_user = 'u' + (u.tg_id || Math.floor(Math.random() * 999999));
+    u.proxy_pass = Math.random().toString(36).slice(2, 14);
+  }
+  DB.saveUser(state.user.email, u);
+  state.user = u;
+
+  if (state.payTimer) clearInterval(state.payTimer);
+
+  showToast('🎉 Оплата прошла! Подписка активирована!', 3500);
+  resetBuyFlow();
+  updateUI();
+  setTimeout(() => switchTab('proxy'), 1000);
+}
+
+function cancelPayment() {
+  if (state.payTimer) clearInterval(state.payTimer);
+  state.currentPayment = null;
+  resetBuyFlow();
+}
+
+function resetBuyFlow() {
+  document.getElementById('buy-step-tariff').style.display = 'block';
+  document.getElementById('buy-step-method').style.display = 'none';
+  document.getElementById('buy-step-waiting').style.display = 'none';
+  document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('check-btn-text').textContent = '✅ Я оплатил';
+  state.selectedTariff = null;
+}
+
+function startPayTimer(seconds) {
+  if (state.payTimer) clearInterval(state.payTimer);
+  state.payTimerEnd = Date.now() + seconds * 1000;
+  const el = document.getElementById('payment-timer');
+  function tick() {
+    const left = Math.max(0, Math.floor((state.payTimerEnd - Date.now()) / 1000));
+    const m = String(Math.floor(left / 60)).padStart(2, '0');
+    const s = String(left % 60).padStart(2, '0');
+    el.textContent = m + ':' + s;
+    if (left === 0) {
+      clearInterval(state.payTimer);
+      showToast('⏰ Время платежа истекло. Начните заново.');
+      cancelPayment();
+    }
+  }
+  tick();
+  state.payTimer = setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════
+//  PLATEGA API
+// ═══════════════════════════════════════════
+async function createPlatega(amount, days, method, tgId) {
+  const headers = {
+    'X-MerchantId': CONFIG.MERCHANT_ID,
+    'X-Secret': CONFIG.API_KEY,
+    'Content-Type': 'application/json',
+  };
+  const body = {
+    paymentMethod: method,
+    paymentDetails: { amount, currency: 'RUB' },
+    description: `+repProxy — ${days} дн. (ID: ${tgId})`,
+    return: 'https://t.me/',
+    payload: String(tgId),
+  };
+  const r = await fetch(`${CONFIG.PLATEGA_URL}/transaction/process`, {
+    method: 'POST', headers, body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+async function checkPlatega(tid) {
+  const r = await fetch(`${CONFIG.PLATEGA_URL}/transaction/${tid}`, {
+    headers: { 'X-MerchantId': CONFIG.MERCHANT_ID, 'X-Secret': CONFIG.API_KEY },
+  });
+  return r.json();
+}
+
+// ═══════════════════════════════════════════
+//  REFERRALS
+// ═══════════════════════════════════════════
+function shareRef() {
+  const u = state.user;
+  const refLink = `https://t.me/repProxyBot?start=ref_${u?.tg_id || 'user'}`;
+  if (tg) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent('+repProxy — личный SOCKS5 прокси для Telegram от 3₽/день')}`);
+  } else {
+    navigator.share?.({ title: '+repProxy', url: refLink }) || copyRefLink();
+  }
+}
+
+function copyRefLink() {
+  const u = state.user;
+  const refLink = `https://t.me/repProxyBot?start=ref_${u?.tg_id || 'user'}`;
+  navigator.clipboard?.writeText(refLink).then(() => showToast('🔗 Ссылка скопирована!')).catch(() => showToast('🔗 Ссылка скопирована!'));
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+(function boot() {
+  const session = DB.getSession();
+  if (session?.email) {
+    const user = DB.getUser(session.email);
+    if (user) {
+      state.user = user;
+      if (state.tgId && !user.tg_id) {
+        user.tg_id = state.tgId;
+        DB.saveUser(session.email, user);
+        state.user = user;
+      }
+      initApp();
+      return;
+    }
+  }
+  showPage('page-register');
+})();
+</script>
+
+<!-- EmailJS (optional, for sending emails) -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY);
+    console.log('EmailJS initialized');
+  }
+</script>
+</body>
+  </html>
